@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=6 torchrun --nnodes=1 --nproc_per_node=1 --master_port=29300 extract_features.py --model DiT-XL/2 --data-path /home/notebook/data/group/datasets/imagenet1k/train --features-path /home/notebook/code/personal/imagenet_feature

@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=6,7 torchrun --nnodes=1 --nproc_per_node=2 --master_port=28000 sample_ddp.py --model DiT-B-MOE/4 --num-fid-samples 50000 --cfg-scale 1.0 --ckpt results/003-DiT-B-MOE-4/checkpoints/0100000.pt
