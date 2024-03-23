@@ -26,5 +26,4 @@ bash sample_ddp.sh
 generates a folder of samples as well as a `.npz` file which can be directly used with [ADM's TensorFlow
 evaluation suite](https://github.com/openai/guided-diffusion/tree/main/evaluations) to compute FID, Inception Score and other metrics. 
 
-## Reference
 
