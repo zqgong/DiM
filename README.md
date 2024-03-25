@@ -2,6 +2,10 @@
 
 This repo is changed from [fast DiT](https://github.com/chuanyangjin/fast-DiT). Provide two different blocks. <br> One is based on MoE. Another is re-implemented the bi-mamba block, refer to [DIFFUSSM](https://arxiv.org/ads/2311.18257) and [Vim](https://github.com/hustvl/Vim) 
 
+the version 2 of bi-mamba is like:
+
+<img src="./assets/bimamba.jpg" alt="bi-mamba v2" width="500">
+
 see [`models.py`](models.py) for details.
 
 ### Preparation Before Training

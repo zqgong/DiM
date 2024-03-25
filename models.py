@@ -180,7 +180,7 @@ class MambaBlock(nn.Module):
             x_fb = self.dense2(x_fb)
 
             x_ = self.dense3(x_)
-            x_ = x_ * x_fb
+            x_ = torch.nn.functional.silu(x_) * x_fb
             x_o = self.dense4(x_)
 
             x = x + gate.unsqueeze(1) * x_o
