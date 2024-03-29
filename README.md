@@ -2,13 +2,13 @@
 
 This repository is a modification of [fast DiT](https://github.com/chuanyangjin/fast-DiT). It provides two different blocks. <br> The first block is based on the MoE (Mixture of Experts) module. The second block is a re-implementation of the bi-mamba block, inspired by [DIFFUSSM](https://arxiv.org/ads/2311.18257) and [Vim](https://github.com/hustvl/Vim) 
 
-The version 2 of the bi-mamba block is as follows:
+The version 2 and 3 of the bi-mamba block is as follows:
 
 <img src="./assets/bimamba.jpg" alt="bi-mamba v2" width="500">
 
-The version 3 is moe version. see [`models.py`](models.py) for details.
+see [`models.py`](models.py) for details.
 
-There is **no** completed version yet. <br>
+There is **no** completed version yet. 
 
 There are some experimental results:
 
