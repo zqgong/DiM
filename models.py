@@ -113,7 +113,7 @@ class HourGlass(nn.Module):
 
 class MambaBlock(nn.Module):
     def __init__(
-        self, hidden_size, layer_idx, bidirectional, mlp_ratio=4.0, **block_kwargs 
+        self, hidden_size, layer_idx, bidirectional, moe_num_expert=8, moe_top_k=2, mlp_ratio=4.0, **block_kwargs 
     ):
         """
         Simple block wrapping a mixer class with LayerNorm/RMSNorm and residual connection"
@@ -161,6 +161,22 @@ class MambaBlock(nn.Module):
                 nn.SiLU(),
                 nn.Linear(hidden_size, 6 * hidden_size, bias=True)
             )
+
+        elif self.bidirectional == "v3":
+            self.norm1 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
+            self.norm2 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
+            mlp_hidden_dim = int(hidden_size * mlp_ratio)
+            approx_gelu = lambda: nn.GELU(approximate="tanh")
+
+            self.experts = nn.ModuleList([Mlp(in_features=hidden_size, hidden_features=mlp_hidden_dim, act_layer=approx_gelu, drop=0)
+                                        for _ in range(moe_num_expert)])
+
+            self.gate = NaiveGate(hidden_size, moe_num_expert, moe_top_k)
+
+            self.adaLN_modulation = nn.Sequential(
+                nn.SiLU(),
+                nn.Linear(hidden_size, 6 * hidden_size, bias=True)
+            )
         else: 
             raise NotImplementedError("not implemented")
 
@@ -197,7 +213,30 @@ class MambaBlock(nn.Module):
             x_o = self.mlp(modulate(self.norm2(x), shift_o, scale_o)) 
 
             x = x + gate_o.unsqueeze(1) * x_o
-        
+
+        elif self.bidirectional == "v3" :
+            shift_m, scale_m, gate_m, shift_o, scale_o, gate_o = self.adaLN_modulation(c).chunk(6, dim=1)
+
+            x = modulate(self.norm1(x), shift_m, scale_m)
+            x_f = self.mixer1(x, inference_params=inference_params)
+            x_b = self.mixer2(x.flip([1]), inference_params=inference_params)
+            x_fb = (x_f + x_b.flip([1])) * 0.5
+            x = x + gate_m.unsqueeze(1) * x_fb 
+
+            norm_x = self.norm2(x)
+            norm_x_squashed = norm_x.view(-1, norm_x.shape[-1])  
+            gate_top_k_idx, gate_top_k_score = self.gate(norm_x_squashed, return_all_scores=False)  # N*SEQ, TOPK
+
+            x_norm = modulate(norm_x, shift_o, scale_o)
+            norm_x_squashed = x_norm.view(-1, norm_x.shape[-1]) 
+            results = torch.zeros_like(norm_x_squashed)
+            for i, expert in enumerate(self.experts):
+                batch_idx, nth_expert = torch.where(gate_top_k_idx == i)
+                score = gate_top_k_score[batch_idx, nth_expert][..., None]
+                pick = norm_x_squashed[batch_idx]
+                results[batch_idx] += expert(pick) * score
+
+            x = x + gate_o.unsqueeze(1) * results.view(x.shape)
         else:            
             raise NotImplementedError("not implemented")
 
@@ -628,16 +667,27 @@ def DiT_B_MOE_4(**kwargs):
 
 # =============================== MAMBA ===========================================
 def DiT_XL_BIMBv1_2(**kwargs):
+    return DiT(depth=28, hidden_size=1152, patch_size=2, num_heads=16, block_type="MambaBlock", bidirectional="v1", **kwargs)
+
+def DiT_L_BIMBv1_2(**kwargs):
     return DiT(depth=24, hidden_size=1024, patch_size=2, num_heads=16, block_type="MambaBlock", bidirectional="v1", **kwargs)
 
 def DiT_B_BIMBv1_4(**kwargs):
     return DiT(depth=12, hidden_size=768, patch_size=4, num_heads=12, block_type="MambaBlock", bidirectional="v1", **kwargs)
 
 def DiT_XL_BIMBv2_2(**kwargs):
+    return DiT(depth=28, hidden_size=1152, patch_size=2, num_heads=16, block_type="MambaBlock", bidirectional="v2", **kwargs)
+
+def DiT_L_BIMBv2_2(**kwargs):
     return DiT(depth=24, hidden_size=1024, patch_size=2, num_heads=16, block_type="MambaBlock", bidirectional="v2", **kwargs)
 
 def DiT_B_BIMBv2_4(**kwargs):
     return DiT(depth=12, hidden_size=768, patch_size=4, num_heads=12, block_type="MambaBlock", bidirectional="v2", **kwargs)
+
+
+def DiT_B_BIMBv3_4(**kwargs):
+    return DiT(depth=12, hidden_size=768, patch_size=4, num_heads=12, block_type="MambaBlock", bidirectional="v2", **kwargs)
+
 
 # ================================= ORIGIN ===========================================
 def DiT_XL_2(**kwargs):
@@ -678,7 +728,8 @@ def DiT_S_8(**kwargs):
 
 
 DiT_models = {
-    "DiT-XL-MOE/2": DiT_XL_MOE_2, "DiT-B-MOE/4": DiT_B_MOE_4,
+    'DiT-B-BIMBv3/4': DiT_B_BIMBv3_4, 
+    'DiT-XL-MOE/2': DiT_XL_MOE_2, 'DiT-B-MOE/4': DiT_B_MOE_4,
     'DiT-XL-BIMBv2/2': DiT_XL_BIMBv2_2, 'DiT-XL-BIMBv1/2': DiT_XL_BIMBv1_2,
     'DiT-B-BIMBv2/4': DiT_B_BIMBv2_4,  'DiT-B-BIMBv1/4': DiT_B_BIMBv1_4,
     'DiT-XL/2': DiT_XL_2,  'DiT-XL/4': DiT_XL_4,  'DiT-XL/8': DiT_XL_8,

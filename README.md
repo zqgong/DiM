@@ -6,7 +6,26 @@ The version 2 of the bi-mamba block is as follows:
 
 <img src="./assets/bimamba.jpg" alt="bi-mamba v2" width="500">
 
-see [`models.py`](models.py) for details.
+The version 3 is moe version. see [`models.py`](models.py) for details.
+
+There is **no** completed version yet. <br>
+
+There are some experimental results:
+
+| DiT Model  | Train Steps | FID-50K<br> (PyTorch Training) | PyTorch Global Training Seed |
+|------------|-------------|--------------------------------|------------------------------|
+| XL/2       | 400K        | **18.1**                       | 42                           |
+| B/4        | 400K        | 68.9                           | 42                           |
+| B/4        | 400K        | **68.3**                       | 100                          |
+|------------|-------------|--------------------------------|------------------------------|
+| DiM-B/4    | 400K        | 58.6                           | 0                            |
+| DiM-L/2    | 400K        | 19.8                           | 0                            |
+
+
+
+## Sampling of DiM-L/2（400K Step）
+<img src="./assets/dim_l_2.jpg" alt="sample" width="500">
+
 
 ### Preparation Before Training
 To extract ImageNet features with `1` GPUs on one node:
