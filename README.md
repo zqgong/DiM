@@ -8,7 +8,7 @@ The version 2 and 3 of the bi-mamba block is as follows:
 
 see [`models.py`](models.py) for details.
 
-There is **no** completed training version yet. I believe the DiM has the potential to get good fid scores.
+There is **no** completed training version yet.
 
 There are some experimental results:
 
